@@ -64,7 +64,7 @@ class ModuloCom(threading.Thread):
                                 print "Sem rota para Internet"
 
                         self.sendEnvio()
-                        break
+                        
 
 	def run(self):
                 self.gerenciaEnvio()
@@ -116,27 +116,42 @@ class ModuloCom(threading.Thread):
                         msg.preamble = "TESTE"
 			
 			nomes = open(self.nomeArquivoEmail, 'r+')
-                        for linha in nomes:
-                                if linha.strip() == '':
+                        hoje = "%s" % (time.strftime("%Y_%m_%d"))
+			logsmtp = open("log_tarefaSMTP.%s.txt" % (hoje), "a")
+			for linha in nomes:
+				if linha.strip() == '':
 					continue
 					print "E-mail enviado" 
+					break				
+				
+				hora = time.strftime("%H:%M:%S %Z")
+                                logsmtp.write("[%s] " % (hora))
+				logsmtp.write(linha)
+	
+				
+				
 				filename = linha.strip()
                                 f = file(filename)
                                 attachment = MIMEText(f.read())
                                 attachment.add_header('Content-Disposition', 'attachment', filename=filename)
                                 msg.attach(attachment)
+			
 
-                                server = smtplib.SMTP("64.233.186.109:587")
-                                server.starttls()
-                                server.login(user,password)
-                        nomes.seek(0)
+
+                       	server = smtplib.SMTP("64.233.186.109:587")
+                        server.starttls()
+                        server.login(user,password)
+                        	
+			logsmtp.close()
+			nomes.seek(0)
 			nomes.truncate()
+			
+			server.sendmail(emailfrom, emailto, msg.as_string())
 			nomes.close()
-                        server.sendmail(emailfrom, emailto, msg.as_string())
-                        server.quit()
+			server.quit()
                 except socket.timeout:
                  print("Ocorreu um erro de Timeout do SMTP.")
-		 time.sleep(10)
+		 time.sleep(5)
                  while 1:
                         if self.checkStatus() == False:
                                 print "Sem rota para internet"
@@ -148,7 +163,7 @@ class ModuloCom(threading.Thread):
 		 		
                 except socket.error:
                  print("Oocorreu um erro de socket no SMTP. ")
-		 time.sleep(10)
+		 time.sleep(5)
                  while 1:
 		 	if self.checkStatus() == False:
                  		print "Sem rota para internet"
@@ -163,13 +178,20 @@ class ModuloCom(threading.Thread):
 
                         sessao = ftplib.FTP(self.servidoFtp,self.loginFtp,self.senhaFtp)
                         nomes = open(self.nomeArquivoFtp,'r+')
-                        for linha in nomes:
+                        hoje = "%s" % (time.strftime("%Y_%m_%d"))
+                        logftp = open("log_tarefaFTP.%s.txt" % (hoje), "a")
+			for linha in nomes:
 				if linha.strip() == '':
 					print "Ftp envado"
 					file.close()
 					break
-                                file = open(linha.strip(),'rb')
+                                hora = time.strftime("%H:%M:%S %Z")
+                                logftp.write("[%s] " % (hora))
+                                logftp.write(linha)
+
+				file = open(linha.strip(),'rb')
                                 sessao.storbinary('STOR ' + linha.strip(), file)
+			logftp.close()
 			nomes.seek(0)
 			nomes.truncate()
 			nomes.close()
@@ -178,8 +200,7 @@ class ModuloCom(threading.Thread):
 
                 except socket.timeout:
                  print("Ocorreu um erro de Timeout do FTP.")
-		 print("Ocorreu um erro de socket no FTP. ")
-                 time.sleep(10)
+                 time.sleep(5)
                  while 1:
                         if self.checkStatus() == False:
                                 print "Sem rota para internet"
@@ -192,7 +213,7 @@ class ModuloCom(threading.Thread):
 		
                 except socket.error:
                  print("Ocorreu um erro de socket no FTP. ")
-                 time.sleep(10)
+                 time.sleep(5)
                  while 1:
                         if self.checkStatus() == False:
                                 print "Sem rota para internet"
