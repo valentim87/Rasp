@@ -77,9 +77,11 @@ class ModuloCom(threading.Thread):
 	
 	def checkStatus(self):
                 primeiroEth0 = os.system("ping -I eth0  -c 5 " + self.checkDestino )
-                segundaPpp0 = os.system("ping -I ppp0  -c 5 " + self.checkDestino )
+                print "------------------------------------------------------------------------"
+		segundaPpp0 = os.system("ping -I ppp0  -c 5 " + self.checkDestino )
 		if primeiroEth0 == 0 or segundaPpp0  == 0:
-                        print "Conexao OK"
+                        print "Conexao Verifica e OK"
+			print "------------------------------------------------------------------------"
                         return True
                 else:
                         print "Conexao OFF"
@@ -89,18 +91,37 @@ class ModuloCom(threading.Thread):
         def verificaInterface(self):
                         for dev in netinfo.list_active_devs():
                                  print dev
+		
 			if self.interfaceETH0 == dev:
-                        	print "Interface eth0 OK"
-                                return True
+				print "Interface Ativa"
+				print "------------------------------------------------------------------------"
+				return True
 
-                        if self.interfacePPP0 == dev:
-                                print "Interface ppp0 OK"
-                                return True
 
-                        else:
-                                print "Sem interface"
+			if self.interfacePPP0 == dev:
+				print "Interface Ativa"
+				print "------------------------------------------------------------------------"
+				return True
+
+			else:
+                                print "Sem Rota para internet"
                                 return False
+	
 
+	def saidaSocketFTP(self):
+        	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        	s.connect(("8.8.8.8",80))
+        	print "Saindo FTP pelo", (s.getsockname()[0])
+        	s.close()
+
+
+	def saidaSocketSMTP(self):
+        	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        	s.connect(("8.8.8.8",80))
+        	print "Saindo SMTP pelo", (s.getsockname()[0])
+        	s.close()
+
+	
 
         def conexaoEmail(self):
                 try:
@@ -141,17 +162,20 @@ class ModuloCom(threading.Thread):
                        	server = smtplib.SMTP("64.233.186.109:587")
                         server.starttls()
                         server.login(user,password)
-                        	
+                        self.saidaSocketSMTP()
+				
 			logsmtp.close()
 			nomes.seek(0)
 			nomes.truncate()
+			
+			#raise NameError("ocorreu um ERRO")
 			
 			server.sendmail(emailfrom, emailto, msg.as_string())
 			nomes.close()
 			server.quit()
                 except socket.timeout:
                  print("Ocorreu um erro de Timeout do SMTP.")
-		 time.sleep(5)
+		 time.sleep(1)
                  while 1:
                         if self.checkStatus() == False:
                                 print "Sem rota para internet"
@@ -163,17 +187,21 @@ class ModuloCom(threading.Thread):
 		 		
                 except socket.error:
                  print("Oocorreu um erro de socket no SMTP. ")
-		 time.sleep(5)
+		 time.sleep(1)
                  while 1:
-		 	if self.checkStatus() == False:
-                 		print "Sem rota para internet"
+			if self.checkStatus() == False:
+                		print "Sem rota para internet"
 				break
-		 	else:
+			else:
 				self.conexaoEmail()
 				break
+		
+	      
+		except smtplib.SMTPException:
+		 print "Ocorreu um erro durante o envio"
 
 
-        def conexaoFtp(self):
+	def conexaoFtp(self):
                 try:
 
                         sessao = ftplib.FTP(self.servidoFtp,self.loginFtp,self.senhaFtp)
@@ -182,25 +210,28 @@ class ModuloCom(threading.Thread):
                         logftp = open("log_tarefaFTP.%s.txt" % (hoje), "a")
 			for linha in nomes:
 				if linha.strip() == '':
+					continue
 					print "Ftp envado"
-					file.close()
+					file.lose()
 					break
+
                                 hora = time.strftime("%H:%M:%S %Z")
                                 logftp.write("[%s] " % (hora))
                                 logftp.write(linha)
 
 				file = open(linha.strip(),'rb')
-                                sessao.storbinary('STOR ' + linha.strip(), file)
+                        	sessao.storbinary('STOR ' + linha.strip(),file )
+			
+			self.saidaSocketFTP()
 			logftp.close()
 			nomes.seek(0)
 			nomes.truncate()
 			nomes.close()
-			#file.close()
                         sessao.quit()
 
                 except socket.timeout:
                  print("Ocorreu um erro de Timeout do FTP.")
-                 time.sleep(5)
+                 time.sleep(1)
                  while 1:
                         if self.checkStatus() == False:
                                 print "Sem rota para internet"
@@ -213,7 +244,7 @@ class ModuloCom(threading.Thread):
 		
                 except socket.error:
                  print("Ocorreu um erro de socket no FTP. ")
-                 time.sleep(5)
+                 time.sleep(1)
                  while 1:
                         if self.checkStatus() == False:
                                 print "Sem rota para internet"
