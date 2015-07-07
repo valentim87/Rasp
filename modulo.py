@@ -12,8 +12,9 @@ import urllib
 import time
 import ConfigParser
 import threading
+import timeit
 
-timeout = 25
+timeout = 900
 socket.setdefaulttimeout(timeout)
 
 class ModuloCom(threading.Thread):
@@ -59,7 +60,7 @@ class ModuloCom(threading.Thread):
 		while 1:
                         if self.verificaInterface() == False:
                                 print "Nao existe Interface  Disponivel"
-                                break
+                               
                         if self.checkStatus() == False:
                                 print "Sem rota para Internet"
 
@@ -136,41 +137,31 @@ class ModuloCom(threading.Thread):
                         msg["Subject"] = "TESTE"
                         msg.preamble = "TESTE"
 			
+			server = smtplib.SMTP("64.233.186.109:587")
+                        server.starttls()
+                        server.login(user,password)
+
+
 			nomes = open(self.nomeArquivoEmail, 'r+')
-                        hoje = "%s" % (time.strftime("%Y_%m_%d"))
-			logsmtp = open("log_tarefaSMTP.%s.txt" % (hoje), "a")
+			start = timeit.default_timer()
 			for linha in nomes:
-				if linha.strip() == '':
-					continue
+				if linha.strip() =='':
 					print "E-mail enviado" 
 					break				
-				
-				hora = time.strftime("%H:%M:%S %Z")
-                                logsmtp.write("[%s] " % (hora))
-				logsmtp.write(linha)
-	
-				
 				
 				filename = linha.strip()
                                 f = file(filename)
                                 attachment = MIMEText(f.read())
-                                attachment.add_header('Content-Disposition', 'attachment', filename=filename)
-                                msg.attach(attachment)
-			
-
-
-                       	server = smtplib.SMTP("64.233.186.109:587")
-                        server.starttls()
-                        server.login(user,password)
-                        self.saidaSocketSMTP()
+                        	attachment.add_header('Content-Disposition', 'attachment', filename=filename)
+                        	msg.attach(attachment)
 				
-			logsmtp.close()
+
 			nomes.seek(0)
 			nomes.truncate()
-			
-			#raise NameError("ocorreu um ERRO")
-			
+                        self.saidaSocketSMTP()						
 			server.sendmail(emailfrom, emailto, msg.as_string())
+			stop = timeit.default_timer()			
+			print stop - start
 			nomes.close()
 			server.quit()
                 except socket.timeout:
@@ -206,24 +197,18 @@ class ModuloCom(threading.Thread):
 
                         sessao = ftplib.FTP(self.servidoFtp,self.loginFtp,self.senhaFtp)
                         nomes = open(self.nomeArquivoFtp,'r+')
-                        hoje = "%s" % (time.strftime("%Y_%m_%d"))
-                        logftp = open("log_tarefaFTP.%s.txt" % (hoje), "a")
 			for linha in nomes:
+				start = timeit.default_timer()
 				if linha.strip() == '':
-					continue
 					print "Ftp envado"
 					file.lose()
 					break
 
-                                hora = time.strftime("%H:%M:%S %Z")
-                                logftp.write("[%s] " % (hora))
-                                logftp.write(linha)
-
 				file = open(linha.strip(),'rb')
                         	sessao.storbinary('STOR ' + linha.strip(),file )
-			
+				stop = timeit.default_timer()
+                        	print stop - start
 			self.saidaSocketFTP()
-			logftp.close()
 			nomes.seek(0)
 			nomes.truncate()
 			nomes.close()
